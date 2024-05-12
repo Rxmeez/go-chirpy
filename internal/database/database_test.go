@@ -89,7 +89,7 @@ func TestCreateChirp(t *testing.T) {
 
 	// Create a chirp
 	body := "test chirp"
-	chirp, err := db.CreateChirp(body)
+	chirp, err := db.CreateChirp(body, 1)
 	if err != nil {
 		t.Fatalf("CreateChirp resulted in an error: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestGetChirps(t *testing.T) {
 
 	// Create a chirp
 	body := "test chirp"
-	_, err := db.CreateChirp(body)
+	_, err := db.CreateChirp(body, 1)
 	if err != nil {
 		t.Fatalf("CreateChirp resulted in an error: %v", err)
 	}

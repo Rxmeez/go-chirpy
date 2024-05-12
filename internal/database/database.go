@@ -9,11 +9,7 @@ import (
 )
 
 var ErrorEmptyFile = errors.New("EmptyFile")
-
-type Chirp struct {
-	Id   int    `json:"id"`
-	Body string `json:"body"`
-}
+var ErrorChirpDoesNotExist = errors.New("Chirp id doesn't exist")
 
 type DB struct {
 	path string
@@ -22,6 +18,13 @@ type DB struct {
 
 type DBStructure struct {
 	Chirps map[int]Chirp `json:"chirps"`
+	Users  map[int]User  `json:"users"`
+}
+
+type Chirp struct {
+	Id       int    `json:"id"`
+	Body     string `json:"body"`
+	AuthorId int    `json:"author_id"`
 }
 
 func NewDB(path string) (*DB, error) {
@@ -82,7 +85,7 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 	return nil
 }
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+func (db *DB) CreateChirp(body string, authorId int) (Chirp, error) {
 
 	dbStructure, err := db.loadDB()
 	if err != nil && !errors.Is(err, ErrorEmptyFile) {
@@ -98,7 +101,7 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 
 	chirpId := len(dbStructure.Chirps) + 1
 
-	chirp := Chirp{Id: chirpId, Body: body}
+	chirp := Chirp{Id: chirpId, Body: body, AuthorId: authorId}
 
 	dbStructure.Chirps[chirpId] = chirp
 
@@ -109,7 +112,6 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	}
 
 	return chirp, nil
-
 }
 
 func (db *DB) GetChirps() ([]Chirp, error) {
@@ -125,5 +127,46 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	}
 
 	return chirps, nil
+}
+
+func (db *DB) GetChirp(id int) (Chirp, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil && !errors.Is(err, ErrorEmptyFile) {
+		return Chirp{}, err
+	}
+
+	chirp, ok := dbStructure.Chirps[id]
+	if !ok {
+		return chirp, ErrorChirpDoesNotExist
+	}
+
+	return chirp, nil
+}
+
+func (db *DB) DeleteChirp(id, authorId int) error {
+
+	dbStructure, err := db.loadDB()
+	if err != nil && !errors.Is(err, ErrorEmptyFile) {
+		return err
+	}
+
+	chirp, ok := dbStructure.Chirps[id]
+	if !ok {
+		return ErrorChirpDoesNotExist
+	}
+
+	if chirp.AuthorId != authorId {
+		return errors.New("Forbidden to delete another authors chirp")
+	}
+
+	delete(dbStructure.Chirps, id)
+
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	return nil
 
 }
